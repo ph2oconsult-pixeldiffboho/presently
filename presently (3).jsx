@@ -1,13 +1,669 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import DAYS from "./data/days.js";
-import {
-  computeBehaviourProfile,
-  getAdaptiveCopy,
-  getWeeklySummary,
-  classifyReflection,
-  classifyVoiceDuration,
-  createDayLog,
-} from "./data/intelligence.js";
+
+// ─── Presently: 30-Day Alignment Curriculum ───
+// Phase 1: Notice (Days 1–7)   — Awareness without action
+// Phase 2: Interrupt (Days 8–14) — Breaking autopilot
+// Phase 3: Choose (Days 15–22)  — Intentional living
+// Phase 4: Integrate (Days 23–30) — Embodiment
+
+const DAYS = [
+  // ═══════════════════════════════════════
+  // PHASE 1: NOTICE (Days 1–7)
+  // ═══════════════════════════════════════
+  {
+    day: 1,
+    phase: "Notice",
+    title: "Begin here",
+    arrival_prompt: "You showed up. That's the first act of attention.",
+    action: "At some point today, stop and notice what your body is doing. Shoulders, jaw, hands. Just notice.",
+    reflection_prompt: "What did you find when you checked in with your body?",
+    close_message: "You've started. That's more than most.",
+    is_reflection_day: false,
+  },
+  {
+    day: 2,
+    phase: "Notice",
+    title: "The first thought",
+    arrival_prompt: "What was the first thing on your mind when you woke up?",
+    action: "Before your first conversation today, pause for one full breath. That's it.",
+    reflection_prompt: "What runs in the background of your mind when you're not paying attention?",
+    close_message: "Noticing is the beginning of everything.",
+    is_reflection_day: false,
+  },
+  {
+    day: 3,
+    phase: "Notice",
+    title: "The space between",
+    arrival_prompt: "Most of life happens between the big moments.",
+    action: "Find one gap in your day — waiting for coffee, a red light, a loading screen. Be in it. Don't fill it.",
+    reflection_prompt: "What happens when you let a moment be empty?",
+    close_message: "The gaps are where you find yourself.",
+    is_reflection_day: false,
+  },
+  {
+    day: 4,
+    phase: "Notice",
+    title: "What you carry",
+    arrival_prompt: "You bring something invisible into every room. What is it today?",
+    action: "Name one thing weighing on you. Say it out loud, even quietly. Don't solve it. Just name it.",
+    reflection_prompt: "What shifted when you named it?",
+    close_message: "Naming things takes their power.",
+    is_reflection_day: false,
+  },
+  {
+    day: 5,
+    phase: "Notice",
+    title: "How you speak to yourself",
+    arrival_prompt: "If your inner voice were a person, would you keep them around?",
+    action: "Catch one unkind thing you say to yourself today. Notice it. That's enough.",
+    reflection_prompt: "What did you catch yourself saying?",
+    close_message: "Awareness is not correction. It's the step before.",
+    is_reflection_day: false,
+  },
+  {
+    day: 6,
+    phase: "Notice",
+    title: "What you avoid",
+    arrival_prompt: "We all have a thing we keep not doing. You already know what it is.",
+    action: "Look at the thing you've been avoiding. Don't do it. Just look at it for ten seconds.",
+    reflection_prompt: "What are you actually afraid of when you avoid that thing?",
+    close_message: "Looking at it is half the work.",
+    is_reflection_day: false,
+  },
+  {
+    day: 7,
+    phase: "Notice",
+    title: "Week one",
+    arrival_prompt: "Seven days of paying attention. What have you learned about yourself?",
+    action: "Write one sentence about who you've been this week. Not who you want to be. Who you've been.",
+    reflection_prompt: "In one sentence — what pattern did you notice this week?",
+    close_message: "This is your baseline. Everything builds from here.",
+    is_reflection_day: true,
+  },
+
+  // ═══════════════════════════════════════
+  // PHASE 2: INTERRUPT (Days 8–14)
+  // ═══════════════════════════════════════
+  {
+    day: 8,
+    phase: "Interrupt",
+    title: "The pause",
+    arrival_prompt: "You've been noticing. Now: what if you paused before reacting?",
+    action: "The next time you feel a strong reaction today, wait three seconds before responding. Just three.",
+    reflection_prompt: "What did three seconds change?",
+    close_message: "Three seconds is a revolution.",
+    is_reflection_day: false,
+  },
+  {
+    day: 9,
+    phase: "Interrupt",
+    title: "One less thing",
+    arrival_prompt: "More isn't better. What if you did less today, but meant it?",
+    action: "Remove one thing from today. One task, one scroll, one obligation. Let it go.",
+    reflection_prompt: "What did you let go of? How did it feel?",
+    close_message: "Subtraction is underrated.",
+    is_reflection_day: false,
+  },
+  {
+    day: 10,
+    phase: "Interrupt",
+    title: "The story you tell",
+    arrival_prompt: "You tell yourself a story about who you are. What if it's out of date?",
+    action: "Catch one moment today where you act from an old story about yourself. Notice it without fixing it.",
+    reflection_prompt: "What old story showed up today?",
+    close_message: "Stories can be rewritten. But first, you have to see them.",
+    is_reflection_day: false,
+  },
+  {
+    day: 11,
+    phase: "Interrupt",
+    title: "Discomfort as data",
+    arrival_prompt: "The things that make you uncomfortable are trying to tell you something.",
+    action: "When something uncomfortable comes up today, ask: what is this telling me? Don't fix it. Listen.",
+    reflection_prompt: "What was the discomfort trying to say?",
+    close_message: "Discomfort isn't the enemy. Numbness is.",
+    is_reflection_day: false,
+  },
+  {
+    day: 12,
+    phase: "Interrupt",
+    title: "The other person",
+    arrival_prompt: "Everyone you meet today is carrying something you can't see.",
+    action: "In one interaction today, listen for thirty seconds longer than feels natural.",
+    reflection_prompt: "What did you hear when you listened longer?",
+    close_message: "Most people aren't heard. You changed that today.",
+    is_reflection_day: false,
+  },
+  {
+    day: 13,
+    phase: "Interrupt",
+    title: "Energy audit",
+    arrival_prompt: "Some things fill you. Some things drain you. You already know which is which.",
+    action: "At the end of today, write two columns: Gave Energy / Took Energy. Be honest.",
+    reflection_prompt: "What surprised you about where your energy went?",
+    close_message: "Energy is the truest currency you have.",
+    is_reflection_day: false,
+  },
+  {
+    day: 14,
+    phase: "Interrupt",
+    title: "Week two",
+    arrival_prompt: "You've been interrupting your autopilot for a week. That takes courage.",
+    action: "Name one pattern you broke this week. Even a small one.",
+    reflection_prompt: "What pattern did you interrupt? What replaced it?",
+    close_message: "Breaking a pattern is proof you're not stuck.",
+    is_reflection_day: true,
+  },
+
+  // ═══════════════════════════════════════
+  // PHASE 3: CHOOSE (Days 15–22)
+  // ═══════════════════════════════════════
+  {
+    day: 15,
+    phase: "Choose",
+    title: "Intention",
+    arrival_prompt: "Noticing is passive. Choosing is active. Today you choose.",
+    action: "Before you start today, finish this sentence: 'Today, I choose to...' — carry it with you.",
+    reflection_prompt: "What did you choose? Did you follow through?",
+    close_message: "Choice is the muscle. Use it daily.",
+    is_reflection_day: false,
+  },
+  {
+    day: 16,
+    phase: "Choose",
+    title: "The hard conversation",
+    arrival_prompt: "There's something you need to say to someone. You've been finding reasons not to.",
+    action: "Say one honest thing today that you've been holding back. It doesn't have to be big.",
+    reflection_prompt: "What happened when you said the thing?",
+    close_message: "Honesty is expensive. But silence costs more.",
+    is_reflection_day: false,
+  },
+  {
+    day: 17,
+    phase: "Choose",
+    title: "Gratitude without performance",
+    arrival_prompt: "Real gratitude is quiet. It doesn't need an audience.",
+    action: "Send one message to someone you appreciate. No occasion. No explanation.",
+    reflection_prompt: "Who did you reach out to? What did it feel like?",
+    close_message: "Gratitude sent is gratitude doubled.",
+    is_reflection_day: false,
+  },
+  {
+    day: 18,
+    phase: "Choose",
+    title: "Boundary",
+    arrival_prompt: "Every yes to something is a no to something else.",
+    action: "Say no to one thing today that doesn't serve you. Politely. Firmly.",
+    reflection_prompt: "What did you say no to? What did that protect?",
+    close_message: "Boundaries aren't walls. They're architecture.",
+    is_reflection_day: false,
+  },
+  {
+    day: 19,
+    phase: "Choose",
+    title: "What you feed",
+    arrival_prompt: "Your attention is food. What have you been feeding?",
+    action: "For one hour today, consume nothing — no scrolling, no news, no input. Be with your own thoughts.",
+    reflection_prompt: "What came up in the quiet?",
+    close_message: "Silence isn't empty. It's full of answers.",
+    is_reflection_day: false,
+  },
+  {
+    day: 20,
+    phase: "Choose",
+    title: "The person you're becoming",
+    arrival_prompt: "You are not who you were last month. Can you feel the difference?",
+    action: "Write one sentence about who you are becoming. Not who you wish to be. Who you're actually becoming.",
+    reflection_prompt: "Who are you becoming?",
+    close_message: "Identity is not fixed. It's practiced.",
+    is_reflection_day: false,
+  },
+  {
+    day: 21,
+    phase: "Choose",
+    title: "Week three",
+    arrival_prompt: "Three weeks. You've moved from noticing to interrupting to choosing. That's real growth.",
+    action: "Name one choice you made this week that the old version of you wouldn't have made.",
+    reflection_prompt: "What choice surprised you this week?",
+    close_message: "You're not the same person who started this. That's the point.",
+    is_reflection_day: true,
+  },
+  {
+    day: 22,
+    phase: "Choose",
+    title: "Rest as action",
+    arrival_prompt: "Choosing to rest is still choosing. Sometimes it's the bravest choice.",
+    action: "Find fifteen minutes today with no purpose. Don't optimise it. Just be.",
+    reflection_prompt: "How did it feel to rest on purpose?",
+    close_message: "Rest isn't the absence of work. It's the presence of trust.",
+    is_reflection_day: false,
+  },
+
+  // ═══════════════════════════════════════
+  // PHASE 4: INTEGRATE (Days 23–30)
+  // ═══════════════════════════════════════
+  {
+    day: 23,
+    phase: "Integrate",
+    title: "Your morning",
+    arrival_prompt: "How you start the day is how you meet the day.",
+    action: "Tomorrow morning, before picking up your phone, do one thing with intention. Water. Stretch. Breathe.",
+    reflection_prompt: "What would your mornings look like if they belonged to you?",
+    close_message: "Own your morning and the day negotiates with you.",
+    is_reflection_day: false,
+  },
+  {
+    day: 24,
+    phase: "Integrate",
+    title: "Your people",
+    arrival_prompt: "You become the energy of the five people closest to you.",
+    action: "Reach out to someone who makes you better. Tell them. No reason needed.",
+    reflection_prompt: "Who lifts you? Who drains you? Be honest.",
+    close_message: "Relationships are environments. Choose them.",
+    is_reflection_day: false,
+  },
+  {
+    day: 25,
+    phase: "Integrate",
+    title: "Your body",
+    arrival_prompt: "Your body has been keeping score. It's time to listen.",
+    action: "Move your body for ten minutes today. Not for fitness. For feeling.",
+    reflection_prompt: "What does your body know that your mind ignores?",
+    close_message: "The body doesn't lie. Learn its language.",
+    is_reflection_day: false,
+  },
+  {
+    day: 26,
+    phase: "Integrate",
+    title: "Your work",
+    arrival_prompt: "Does your work reflect who you are, or just what you do?",
+    action: "Find one moment in your work today where you can bring real presence. Not performance. Presence.",
+    reflection_prompt: "Where does your work feel alive? Where does it feel hollow?",
+    close_message: "Work without presence is just time spent.",
+    is_reflection_day: false,
+  },
+  {
+    day: 27,
+    phase: "Integrate",
+    title: "Forgiveness",
+    arrival_prompt: "There's something you haven't forgiven. It's taking up space.",
+    action: "Name one thing you're holding onto. You don't have to forgive it today. Just acknowledge it's there.",
+    reflection_prompt: "What would you gain if you let that go?",
+    close_message: "Forgiveness isn't for them. It's for you.",
+    is_reflection_day: false,
+  },
+  {
+    day: 28,
+    phase: "Integrate",
+    title: "Legacy",
+    arrival_prompt: "If today were your only legacy, what would it say?",
+    action: "Do one thing today purely because it's the right thing to do. No recognition. No return.",
+    reflection_prompt: "What do you want people to say about you when you're not in the room?",
+    close_message: "Legacy isn't built in big moments. It's built in small, unseen ones.",
+    is_reflection_day: false,
+  },
+  {
+    day: 29,
+    phase: "Integrate",
+    title: "Your letter",
+    arrival_prompt: "Tomorrow this chapter closes. But first, one more thing.",
+    action: "Write a short note to yourself — the person who started this 29 days ago. What would you tell them?",
+    reflection_prompt: "What would you say to the person you were on Day 1?",
+    close_message: "You have always been the guide you were looking for.",
+    is_reflection_day: true,
+  },
+  {
+    day: 30,
+    phase: "Integrate",
+    title: "Still here",
+    arrival_prompt: "Thirty days. You didn't just read words. You changed how you move through the world.",
+    action: "Today, carry nothing from this app. You already have everything you need. Go live it.",
+    reflection_prompt: "In one sentence: what changed?",
+    close_message: "This was never about the app. It was always about you. Go gently.",
+    is_reflection_day: true,
+  },
+];
+
+
+// ─── Presently: Adaptive Intelligence Engine v2 ───
+// Pure functions. No side effects. No storage.
+// Now includes voice reflection tracking.
+
+// ─── 1. BEHAVIOURAL STATE MODEL ───
+
+function computeBehaviourProfile(userData) {
+  const journal = userData.journal || [];
+  const completed = userData.completedDays || [];
+  const dayLogs = userData.dayLogs || [];
+  const currentDay = userData.currentDay || 1;
+
+  const totalDays = Math.max(completed.length, 1);
+  const reflectionsWritten = journal.length;
+  const reflectionRate = reflectionsWritten / totalDays;
+  const skippedReflections = totalDays - reflectionsWritten;
+  const skipRate = skippedReflections / totalDays;
+
+  // Reflection depth (text entries)
+  const lengths = journal.map(j => {
+    if (j.type === "voice") return j.duration > 15 ? "deep" : j.duration > 6 ? "medium" : "short";
+    const len = (j.reflection || "").length;
+    if (len === 0) return "none";
+    if (len < 40) return "short";
+    if (len < 120) return "medium";
+    return "deep";
+  });
+  const deepCount = lengths.filter(l => l === "deep").length;
+  const shortCount = lengths.filter(l => l === "short").length;
+  const medCount = lengths.filter(l => l === "medium").length;
+
+  // Voice tracking
+  const voiceEntries = journal.filter(j => j.type === "voice");
+  const textEntries = journal.filter(j => j.type !== "voice");
+  const voiceRate = reflectionsWritten > 0 ? voiceEntries.length / reflectionsWritten : 0;
+  const prefersVoice = voiceRate > 0.5 && voiceEntries.length >= 2;
+  const avoidsVoice = voiceEntries.length === 0 && textEntries.length >= 4;
+  const lastWasVoice = journal.length > 0 && journal[journal.length - 1]?.type === "voice";
+
+  // Engagement style
+  let engagementStyle = "responsive";
+  if (reflectionRate < 0.3) {
+    engagementStyle = "quiet";
+  } else if (reflectionRate > 0.6 && (deepCount + medCount) > shortCount) {
+    engagementStyle = "reflective";
+  }
+
+  // Recent states (last 7 day logs)
+  const recentLogs = dayLogs.slice(-7);
+  const recentStates = recentLogs.map(l => l.arrivalState).filter(Boolean);
+
+  const stateCounts = {};
+  recentStates.forEach(s => { stateCounts[s] = (stateCounts[s] || 0) + 1; });
+  const dominantState = Object.entries(stateCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const dominantCount = stateCounts[dominantState] || 0;
+  const hasDominantPattern = dominantCount >= 3 && recentStates.length >= 4;
+
+  // Streak
+  let softStreak = 0;
+  for (let d = currentDay; d >= 1; d--) {
+    if (completed.includes(d)) {
+      softStreak++;
+    } else if (completed.includes(d - 1)) {
+      continue;
+    } else {
+      break;
+    }
+  }
+
+  // Absence
+  const lastCompleted = completed.length > 0 ? Math.max(...completed) : 0;
+  const daysSinceLastComplete = currentDay - lastCompleted;
+  const isReturningAfterAbsence = daysSinceLastComplete > 1 && completed.length > 0;
+  const absenceLength = isReturningAfterAbsence ? daysSinceLastComplete : 0;
+
+  return {
+    totalDays,
+    reflectionRate: Math.round(reflectionRate * 100) / 100,
+    skipRate: Math.round(skipRate * 100) / 100,
+    deepCount,
+    shortCount,
+    engagementStyle,
+    recentStates,
+    dominantState,
+    hasDominantPattern,
+    softStreak,
+    isReturningAfterAbsence,
+    absenceLength,
+    currentDay,
+    // Voice
+    voiceRate: Math.round(voiceRate * 100) / 100,
+    prefersVoice,
+    avoidsVoice,
+    lastWasVoice,
+    voiceCount: voiceEntries.length,
+  };
+}
+
+// ─── 2. ADAPTIVE COPY VARIANTS ───
+
+const ARRIVAL_MICRO = {
+  returning_1: [
+    "You're here again. Start there.",
+    "Back. That's what matters.",
+  ],
+  returning_3plus: [
+    "Let's make this simple today.",
+    "No catching up. Just today.",
+    "Start exactly where you are.",
+  ],
+  heavy_pattern: [
+    "It's been a heavier stretch.",
+    "Heavy days still count.",
+  ],
+  steady_pattern: [
+    "Something is settling.",
+    "There's a steadiness building.",
+  ],
+  clear_pattern: [
+    "Clarity suits you.",
+    "You've been arriving clearly.",
+  ],
+  quiet_user: [
+    "No pressure. Just presence.",
+  ],
+  default: null,
+};
+
+const ACTION_FRAMING = {
+  returning: ["Keep it light today.", "Just this one thing."],
+  quiet: ["Small and real."],
+  reflective: ["Sit with this one."],
+  default: null,
+};
+
+const REFLECTION_PLACEHOLDER = {
+  quiet: "A word is enough…",
+  responsive: "Write it as it felt…",
+  reflective: "Stay with it…",
+};
+
+// Voice-specific copy
+const VOICE_NUDGE = {
+  prefersVoice: ["Say it again today.", "Your voice knows."],
+  avoidsVoice: ["You can say it instead."],
+};
+
+const VOICE_ACK_SHORT = [
+  "You said that out loud.",
+  "That was enough.",
+  "You let it out.",
+];
+
+const VOICE_ACK_LONG = [
+  "You stayed with it.",
+  "You didn't hold that in.",
+  "You heard yourself say it.",
+  "That came out clearly.",
+];
+
+const CLOSE_AFTER_SKIP = [
+  "You still noticed.",
+  "You don't have to write for this to count.",
+  "Showing up is the thing.",
+  "That was enough.",
+];
+
+const CLOSE_AFTER_SHORT = [
+  "That says enough.",
+  "You caught it.",
+  "Brief and real.",
+];
+
+const CLOSE_AFTER_DEEP = [
+  "There's something clear in that.",
+  "You stayed with it.",
+  "That's the kind of thought that changes things.",
+];
+
+const CLOSE_AFTER_RETURN = [
+  "You came back. That matters more than you think.",
+  "Welcome back. No need to explain.",
+];
+
+const CLOSE_AFTER_VOICE = [
+  "You said it out loud. That's different.",
+  "Your voice carried something today.",
+  "Some things need to be heard, even by yourself.",
+];
+
+// ─── 3. PICK FUNCTION ───
+
+function pick(arr, seed) {
+  if (!arr || arr.length === 0) return null;
+  return arr[seed % arr.length];
+}
+
+// ─── 4. GET ADAPTIVE COPY ───
+
+function getAdaptiveCopy(profile, dayNumber, didReflect, reflectionLength, reflectionType) {
+  const seed = dayNumber;
+  const result = {
+    arrivalMicro: null,
+    actionFraming: null,
+    reflectionPlaceholder: REFLECTION_PLACEHOLDER[profile.engagementStyle] || REFLECTION_PLACEHOLDER.responsive,
+    voiceNudge: null,
+    closeOverride: null,
+    voiceAck: null,
+  };
+
+  // Arrival micro-line (~40%)
+  const showMicro = (seed * 7 + 3) % 10 < 4;
+
+  if (profile.isReturningAfterAbsence) {
+    result.arrivalMicro = profile.absenceLength >= 3
+      ? pick(ARRIVAL_MICRO.returning_3plus, seed)
+      : pick(ARRIVAL_MICRO.returning_1, seed);
+  } else if (showMicro && profile.hasDominantPattern) {
+    if (profile.dominantState === "heavy") result.arrivalMicro = pick(ARRIVAL_MICRO.heavy_pattern, seed);
+    else if (profile.dominantState === "steady") result.arrivalMicro = pick(ARRIVAL_MICRO.steady_pattern, seed);
+    else if (profile.dominantState === "clear") result.arrivalMicro = pick(ARRIVAL_MICRO.clear_pattern, seed);
+  } else if (showMicro && profile.engagementStyle === "quiet") {
+    result.arrivalMicro = pick(ARRIVAL_MICRO.quiet_user, seed);
+  }
+
+  // Action framing (~30%)
+  const showFraming = (seed * 3 + 1) % 10 < 3;
+  if (profile.isReturningAfterAbsence) {
+    result.actionFraming = pick(ACTION_FRAMING.returning, seed);
+  } else if (showFraming) {
+    result.actionFraming = pick(ACTION_FRAMING[profile.engagementStyle], seed);
+  }
+
+  // Voice nudge (on reflection screen, ~25% when relevant)
+  const showVoiceNudge = (seed * 5 + 2) % 10 < 3;
+  if (showVoiceNudge && profile.prefersVoice) {
+    result.voiceNudge = pick(VOICE_NUDGE.prefersVoice, seed);
+  } else if (showVoiceNudge && profile.avoidsVoice && dayNumber > 5) {
+    result.voiceNudge = pick(VOICE_NUDGE.avoidsVoice, seed);
+  }
+
+  // Close override
+  if (reflectionType === "voice") {
+    result.closeOverride = pick(CLOSE_AFTER_VOICE, seed);
+  } else if (profile.isReturningAfterAbsence) {
+    result.closeOverride = pick(CLOSE_AFTER_RETURN, seed);
+  } else if (!didReflect) {
+    result.closeOverride = pick(CLOSE_AFTER_SKIP, seed);
+  } else if (reflectionLength === "short") {
+    result.closeOverride = pick(CLOSE_AFTER_SHORT, seed);
+  } else if (reflectionLength === "deep") {
+    result.closeOverride = pick(CLOSE_AFTER_DEEP, seed);
+  }
+
+  // Voice acknowledgment (shown between recording and close)
+  if (reflectionType === "voice") {
+    if (reflectionLength === "deep" || reflectionLength === "medium") {
+      result.voiceAck = pick(VOICE_ACK_LONG, seed);
+    } else {
+      result.voiceAck = pick(VOICE_ACK_SHORT, seed);
+    }
+  }
+
+  return result;
+}
+
+// ─── 5. WEEKLY SUMMARY ───
+
+function getWeeklySummary(profile, weekNumber) {
+  const { recentStates, reflectionRate, skipRate } = profile;
+
+  let patternLine = "";
+  if (recentStates.length >= 3) {
+    const heavyDays = recentStates.filter(s => s === "heavy" || s === "restless").length;
+    const calmDays = recentStates.filter(s => s === "steady" || s === "clear").length;
+    const ratio = recentStates.length;
+    if (heavyDays > ratio * 0.5) patternLine = "This week, you arrived more restless than settled.";
+    else if (calmDays > ratio * 0.5) patternLine = "This week, you arrived with more clarity than not.";
+    else patternLine = "This week was a mix. That's how most real weeks look.";
+  } else {
+    patternLine = "A shorter week. Still counts.";
+  }
+
+  let growthLine = "";
+  if (reflectionRate > 0.6) growthLine = "You wrote more than you skipped. That takes something.";
+  else if (reflectionRate > 0.3) growthLine = "You showed up, even on days words didn't come.";
+  else if (skipRate > 0.7) growthLine = "You kept arriving. That's the practice.";
+  else growthLine = "You stayed in it.";
+
+  const reinforcements = [
+    "That's how attention builds.",
+    "Small things, repeated, become structure.",
+    "You're building something that doesn't show up in metrics.",
+    "This is what consistency actually looks like.",
+  ];
+
+  return { patternLine, growthLine, reinforcementLine: pick(reinforcements, weekNumber) };
+}
+
+// ─── 6. HELPERS ───
+
+function classifyReflection(text) {
+  if (!text || text.trim().length === 0) return "none";
+  const len = text.trim().length;
+  if (len < 40) return "short";
+  if (len < 120) return "medium";
+  return "deep";
+}
+
+function classifyVoiceDuration(seconds) {
+  if (seconds < 6) return "short";
+  if (seconds < 15) return "medium";
+  return "deep";
+}
+
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
+}
+
+function createDayLog(dayNumber, phase, arrivalState, actionCommitted, reflectionWritten, reflectionText, reflectionType) {
+  return {
+    dayNumber,
+    phase,
+    arrivalState,
+    actionCommitted,
+    reflectionWritten,
+    reflectionLength: reflectionType === "voice"
+      ? null // duration tracked in journal entry
+      : classifyReflection(reflectionText),
+    reflectionType: reflectionType || "text",
+    completedDay: true,
+    completedAtTime: getTimeOfDay(),
+    timestamp: new Date().toISOString(),
+  };
+}
+
 
 // ─── Constants ───
 const STATES = [
