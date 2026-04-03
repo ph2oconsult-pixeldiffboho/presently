@@ -1,453 +1,616 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const CATEGORIES = [
-  { id: "all", label: "All Wisdom", icon: "✦" },
-  { id: "gratitude", label: "Gratitude", icon: "🙏" },
-  { id: "growth", label: "Personal Growth", icon: "🌱" },
-  { id: "mindset", label: "Mindset", icon: "🧠" },
-  { id: "manifestation", label: "Manifestation", icon: "✨" },
-  { id: "purpose", label: "Purpose", icon: "🧭" },
-  { id: "learning", label: "Lifelong Learning", icon: "📖" },
-  { id: "spiritual", label: "Spiritual Connection", icon: "🕊" },
-];
-
-const SEED_QUOTES = [
-  { text: "When you arise in the morning, think of what a precious privilege it is to be alive — to breathe, to think, to enjoy, to love.", author: "Marcus Aurelius", era: "Roman Emperor & Stoic Philosopher, 121–180 AD", category: "gratitude", tradition: "western" },
-  { text: "Enough is a feast.", author: "Buddhist Proverb", era: "Ancient Buddhist Teaching", category: "gratitude", tradition: "eastern" },
-  { text: "If the only prayer you ever say in your entire life is thank you, it will be enough.", author: "Meister Eckhart", era: "German Theologian & Mystic, 1260–1328", category: "gratitude", tradition: "western" },
-  { text: "We do not inherit the earth from our ancestors; we borrow it from our children.", author: "Indigenous Proverb", era: "Traditional Indigenous Wisdom", category: "gratitude", tradition: "indigenous" },
-  { text: "When eating bamboo sprouts, remember the one who planted them.", author: "Chinese Proverb", era: "Traditional Chinese Wisdom", category: "gratitude", tradition: "eastern" },
-  { text: "Acknowledging the good that you already have in your life is the foundation for all abundance.", author: "Eckhart Tolle", era: "Contemporary Spiritual Teacher", category: "gratitude", tradition: "modern" },
-  { text: "The journey of a thousand miles begins with a single step.", author: "Lao Tzu", era: "Chinese Philosopher, 6th Century BC", category: "growth", tradition: "eastern" },
-  { text: "Fall seven times, stand up eight.", author: "Japanese Proverb", era: "Traditional Japanese Wisdom", category: "growth", tradition: "eastern" },
-  { text: "The wound is the place where the Light enters you.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "growth", tradition: "eastern" },
-  { text: "A gem cannot be polished without friction, nor a person perfected without trials.", author: "Seneca", era: "Roman Stoic Philosopher, 4 BC–65 AD", category: "growth", tradition: "western" },
-  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Will Durant", era: "American Philosopher & Historian, 1885–1981", category: "growth", tradition: "western" },
-  { text: "The mind is everything. What you think, you become.", author: "The Buddha", era: "Spiritual Teacher, c. 563–483 BC", category: "mindset", tradition: "eastern" },
-  { text: "The obstacle is the path.", author: "Zen Proverb", era: "Traditional Zen Buddhist Teaching", category: "mindset", tradition: "eastern" },
-  { text: "Between stimulus and response there is a space. In that space is our power to choose our response.", author: "Viktor Frankl", era: "Austrian Psychiatrist, 1905–1997", category: "mindset", tradition: "western" },
-  { text: "To the mind that is still, the whole universe surrenders.", author: "Lao Tzu", era: "Chinese Philosopher, 6th Century BC", category: "mindset", tradition: "eastern" },
-  { text: "What you seek is seeking you.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "manifestation", tradition: "eastern" },
-  { text: "The universe is not outside of you. Look inside yourself; everything that you want, you already are.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "manifestation", tradition: "eastern" },
-  { text: "All that we are is the result of what we have thought.", author: "The Buddha", era: "Spiritual Teacher, c. 563–483 BC", category: "manifestation", tradition: "eastern" },
-  { text: "Your word is the power that you have to create.", author: "Don Miguel Ruiz", era: "Mexican Toltec Spiritualist, b. 1938", category: "manifestation", tradition: "indigenous" },
-  { text: "Once you make a decision, the universe conspires to make it happen.", author: "Ralph Waldo Emerson", era: "American Philosopher, 1803–1882", category: "manifestation", tradition: "western" },
-  { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche", era: "German Philosopher, 1844–1900", category: "purpose", tradition: "western" },
-  { text: "The two most important days in your life are the day you are born and the day you find out why.", author: "Mark Twain", era: "American Author, 1835–1910", category: "purpose", tradition: "western" },
-  { text: "We are all visitors to this time, this place. We are just passing through. Our purpose here is to observe, to learn, to grow, to love — and then we return home.", author: "Aboriginal Australian Proverb", era: "Traditional Aboriginal Wisdom", category: "purpose", tradition: "indigenous" },
-  { text: "When you do things from your soul, you feel a river moving in you, a joy.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "purpose", tradition: "eastern" },
-  { text: "Real knowledge is to know the extent of one's ignorance.", author: "Confucius", era: "Chinese Philosopher, 551–479 BC", category: "learning", tradition: "eastern" },
-  { text: "Learning is a treasure that will follow its owner everywhere.", author: "Chinese Proverb", era: "Traditional Chinese Wisdom", category: "learning", tradition: "eastern" },
-  { text: "Live as if you were to die tomorrow. Learn as if you were to live forever.", author: "Mahatma Gandhi", era: "Indian Spiritual Leader, 1869–1948", category: "learning", tradition: "eastern" },
-  { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates", era: "Greek Philosopher, 470–399 BC", category: "learning", tradition: "western" },
-  { text: "A single conversation with a wise person is worth a month's study of books.", author: "Chinese Proverb", era: "Traditional Chinese Wisdom", category: "learning", tradition: "eastern" },
-  { text: "We are not human beings having a spiritual experience. We are spiritual beings having a human experience.", author: "Pierre Teilhard de Chardin", era: "French Jesuit & Philosopher, 1881–1955", category: "spiritual", tradition: "western" },
-  { text: "Knowing others is intelligence; knowing yourself is true wisdom. Mastering others is strength; mastering yourself is true power.", author: "Lao Tzu", era: "Chinese Philosopher, 6th Century BC", category: "spiritual", tradition: "eastern" },
-  { text: "Humankind has not woven the web of life. We are but one thread within it. Whatever we do to the web, we do to ourselves.", author: "Chief Seattle", era: "Suquamish & Duwamish Chief, 1786–1866", category: "spiritual", tradition: "indigenous" },
-  { text: "The Great Spirit is in all things. He is in the air we breathe. The Great Spirit is our Father, but the Earth is our Mother.", author: "Big Thunder (Bedagi)", era: "Wabanaki Algonquin Nation", category: "spiritual", tradition: "indigenous" },
-  { text: "Silence is the language of God; all else is poor translation.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "spiritual", tradition: "eastern" },
-  { text: "When we walk upon Mother Earth, we always plant our feet carefully because we know the faces of our future generations are looking up at us from beneath the ground.", author: "Oren Lyons", era: "Onondaga Nation Faithkeeper", category: "spiritual", tradition: "indigenous" },
-  { text: "Waking up this morning, I smile. Twenty-four brand new hours are before me.", author: "Thich Nhat Hanh", era: "Vietnamese Zen Buddhist Monk, 1926–2022", category: "spiritual", tradition: "eastern" },
-
-  // === MEL ROBBINS ===
-  { text: "You are one decision away from a completely different life.", author: "Mel Robbins", era: "American Motivational Speaker & Author, b. 1968", category: "mindset", tradition: "modern" },
-  { text: "Stop saying you're fine. Discover a more powerful you.", author: "Mel Robbins", era: "American Motivational Speaker & Author, b. 1968", category: "growth", tradition: "modern" },
-  { text: "If you have the courage to start, you have the courage to succeed.", author: "Mel Robbins", era: "American Motivational Speaker & Author, b. 1968", category: "manifestation", tradition: "modern" },
-
-  // === MICHELLE OBAMA ===
-  { text: "There is no limit to what we, as women, can accomplish.", author: "Michelle Obama", era: "Former U.S. First Lady & Author, b. 1964", category: "growth", tradition: "modern" },
-  { text: "When they go low, we go high.", author: "Michelle Obama", era: "Former U.S. First Lady & Author, b. 1964", category: "mindset", tradition: "modern" },
-  { text: "Your story is what you have, what you will always have. It is something to own.", author: "Michelle Obama", era: "Former U.S. First Lady & Author, b. 1964", category: "purpose", tradition: "modern" },
-  { text: "Success is not about how much money you make; it's about the difference you make in people's lives.", author: "Michelle Obama", era: "Former U.S. First Lady & Author, b. 1964", category: "purpose", tradition: "modern" },
-
-  // === OPRAH WINFREY ===
-  { text: "Be thankful for what you have; you'll end up having more. If you concentrate on what you don't have, you will never, ever have enough.", author: "Oprah Winfrey", era: "American Media Leader & Philanthropist, b. 1954", category: "gratitude", tradition: "modern" },
-  { text: "Turn your wounds into wisdom.", author: "Oprah Winfrey", era: "American Media Leader & Philanthropist, b. 1954", category: "growth", tradition: "modern" },
-  { text: "The biggest adventure you can ever take is to live the life of your dreams.", author: "Oprah Winfrey", era: "American Media Leader & Philanthropist, b. 1954", category: "manifestation", tradition: "modern" },
-  { text: "You become what you believe, not what you think or what you want.", author: "Oprah Winfrey", era: "American Media Leader & Philanthropist, b. 1954", category: "mindset", tradition: "modern" },
-
-  // === BRENÉ BROWN ===
-  { text: "Vulnerability is not winning or losing; it's having the courage to show up and be seen when we have no control over the outcome.", author: "Brené Brown", era: "American Research Professor & Author, b. 1965", category: "growth", tradition: "modern" },
-  { text: "You are imperfect, you are wired for struggle, but you are worthy of love and belonging.", author: "Brené Brown", era: "American Research Professor & Author, b. 1965", category: "spiritual", tradition: "modern" },
-
-  // === MAYA ANGELOU ===
-  { text: "We delight in the beauty of the butterfly, but rarely admit the changes it has gone through to achieve that beauty.", author: "Maya Angelou", era: "American Poet & Civil Rights Activist, 1928–2014", category: "growth", tradition: "modern" },
-  { text: "There is no greater agony than bearing an untold story inside you.", author: "Maya Angelou", era: "American Poet & Civil Rights Activist, 1928–2014", category: "purpose", tradition: "modern" },
-
-  // === WAYNE DYER ===
-  { text: "When you change the way you look at things, the things you look at change.", author: "Wayne Dyer", era: "American Self-Help Author & Speaker, 1940–2015", category: "mindset", tradition: "modern" },
-  { text: "Abundance is not something we acquire. It is something we tune into.", author: "Wayne Dyer", era: "American Self-Help Author & Speaker, 1940–2015", category: "manifestation", tradition: "modern" },
-
-  // === DEEPAK CHOPRA ===
-  { text: "Every time you are tempted to react in the same old way, ask if you want to be a prisoner of the past or a pioneer of the future.", author: "Deepak Chopra", era: "Indian-American Author & Wellness Advocate, b. 1946", category: "mindset", tradition: "modern" },
-  { text: "In the midst of movement and chaos, keep stillness inside of you.", author: "Deepak Chopra", era: "Indian-American Author & Wellness Advocate, b. 1946", category: "spiritual", tradition: "modern" },
-
-  // === TONY ROBBINS ===
-  { text: "It is in your moments of decision that your destiny is shaped.", author: "Tony Robbins", era: "American Life Coach & Author, b. 1960", category: "manifestation", tradition: "modern" },
-  { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins", era: "American Life Coach & Author, b. 1960", category: "growth", tradition: "modern" },
-
-  // === JAY SHETTY ===
-  { text: "When you learn to live for others, they will live for you.", author: "Jay Shetty", era: "British-American Author & Former Monk, b. 1987", category: "purpose", tradition: "modern" },
-
-  // === ADDITIONAL RUMI ===
-  { text: "Let yourself be silently drawn by the strange pull of what you really love. It will not lead you astray.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "manifestation", tradition: "eastern" },
-  { text: "Yesterday I was clever, so I wanted to change the world. Today I am wise, so I am changing myself.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "growth", tradition: "eastern" },
-  { text: "Don't be satisfied with stories, how things have gone with others. Unfold your own myth.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", category: "purpose", tradition: "eastern" },
-
-  // === NELSON MANDELA ===
-  { text: "It always seems impossible until it's done.", author: "Nelson Mandela", era: "South African Leader & Nobel Laureate, 1918–2013", category: "mindset", tradition: "african" },
-  { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela", era: "South African Leader & Nobel Laureate, 1918–2013", category: "learning", tradition: "african" },
-
-  // === DESMOND TUTU ===
-  { text: "Hope is being able to see that there is light despite all of the darkness.", author: "Desmond Tutu", era: "South African Archbishop & Nobel Laureate, 1931–2021", category: "mindset", tradition: "african" },
-
-  // === ROBIN SHARMA ===
-  { text: "Don't live the same year 75 times and call it a life.", author: "Robin Sharma", era: "Canadian Author & Leadership Speaker, b. 1964", category: "growth", tradition: "modern" },
-
-  // === LOUISE HAY ===
-  { text: "You have been criticising yourself for years, and it hasn't worked. Try approving of yourself and see what happens.", author: "Louise Hay", era: "American Motivational Author, 1926–2017", category: "mindset", tradition: "modern" },
-
-  // === KAHLIL GIBRAN ===
-  { text: "Your living is determined not so much by what life brings to you as by the attitude you bring to life.", author: "Kahlil Gibran", era: "Lebanese-American Poet & Philosopher, 1883–1931", category: "mindset", tradition: "eastern" },
-];
-
-const TRADITION_COLORS = {
-  eastern: { bg: "rgba(220,38,38,0.08)", border: "#b91c1c", label: "Eastern" },
-  western: { bg: "rgba(37,99,235,0.08)", border: "#1d4ed8", label: "Western" },
-  indigenous: { bg: "rgba(217,119,6,0.08)", border: "#b45309", label: "Indigenous" },
-  modern: { bg: "rgba(16,185,129,0.08)", border: "#059669", label: "Modern" },
-  african: { bg: "rgba(168,85,247,0.08)", border: "#7c3aed", label: "African" },
+// ─── Seed data for offline fallback ───
+const SEED_ENTRIES = {
+  restless: [
+    { quote: "To the mind that is still, the whole universe surrenders.", author: "Lao Tzu", era: "Chinese Philosopher, 6th Century BC", tradition: "eastern", carry: "Close your eyes for ten seconds right now. Just breathe. Nothing else.", reflection: "What would you do differently today if you weren't in a rush?" },
+    { quote: "Between stimulus and response there is a space. In that space is our power to choose our response.", author: "Viktor Frankl", era: "Austrian Psychiatrist, 1905–1997", tradition: "western", carry: "The next time you feel reactive today, wait three seconds before responding.", reflection: "Where in your life are you reacting instead of choosing?" },
+    { quote: "You are one decision away from a completely different life.", author: "Mel Robbins", era: "American Author & Speaker, b. 1968", tradition: "modern", carry: "Pick one thing on your mind. Decide on it now. Don't revisit it today.", reflection: "What have you been circling around instead of deciding?" },
+  ],
+  heavy: [
+    { quote: "The wound is the place where the Light enters you.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", tradition: "eastern", carry: "Name one thing that's weighing on you. Don't solve it. Just name it.", reflection: "What if this hard season is building something you can't see yet?" },
+    { quote: "Turn your wounds into wisdom.", author: "Oprah Winfrey", era: "American Media Leader & Philanthropist, b. 1954", tradition: "modern", carry: "Put your hand on your chest for five seconds. Feel that you're here.", reflection: "What have you survived before that once felt impossible?" },
+    { quote: "Hope is being able to see that there is light despite all of the darkness.", author: "Desmond Tutu", era: "South African Archbishop & Nobel Laureate, 1931–2021", tradition: "african", carry: "Tell one person today, honestly, how you're doing. Even briefly.", reflection: "What would it feel like to let someone else carry part of this?" },
+  ],
+  searching: [
+    { quote: "What you seek is seeking you.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", tradition: "eastern", carry: "Write down the question you keep coming back to. Keep it visible today.", reflection: "If you trusted that the answer was already forming, what would you do next?" },
+    { quote: "Your story is what you have, what you will always have. It is something to own.", author: "Michelle Obama", era: "Former U.S. First Lady & Author, b. 1964", tradition: "modern", carry: "Finish this sentence on paper: 'What I actually want is...'", reflection: "What are you afraid of finding if you stop searching?" },
+    { quote: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche", era: "German Philosopher, 1844–1900", tradition: "western", carry: "Ask yourself before each task today: does this move me toward something?", reflection: "What would your life look like if you stopped doing things that don't matter to you?" },
+  ],
+  steady: [
+    { quote: "Knowing others is intelligence; knowing yourself is true wisdom.", author: "Lao Tzu", era: "Chinese Philosopher, 6th Century BC", tradition: "eastern", carry: "At some point today, pause and notice exactly how your body feels.", reflection: "What's one thing you've learned about yourself recently that surprised you?" },
+    { quote: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Will Durant", era: "American Philosopher, 1885–1981", tradition: "western", carry: "Do the most important thing on your list first. Before anything else.", reflection: "What small habit is quietly shaping who you're becoming?" },
+    { quote: "When you change the way you look at things, the things you look at change.", author: "Wayne Dyer", era: "American Author & Speaker, 1940–2015", tradition: "modern", carry: "Find one ordinary thing today and look at it as if seeing it for the first time.", reflection: "What part of your routine are you doing on autopilot that deserves more attention?" },
+  ],
+  open: [
+    { quote: "Be thankful for what you have; you'll end up having more.", author: "Oprah Winfrey", era: "American Media Leader & Philanthropist, b. 1954", tradition: "modern", carry: "Send a message to someone you're grateful for. No occasion needed.", reflection: "What's one thing you've been taking for granted that quietly makes your life work?" },
+    { quote: "Let yourself be silently drawn by the strange pull of what you really love. It will not lead you astray.", author: "Rumi", era: "Persian Poet & Sufi Mystic, 1207–1273", tradition: "eastern", carry: "Say yes to the next thing that excites you today, even if it's small.", reflection: "When was the last time you followed a feeling without needing to justify it?" },
+    { quote: "We delight in the beauty of the butterfly, but rarely admit the changes it has gone through to achieve that beauty.", author: "Maya Angelou", era: "American Poet & Civil Rights Activist, 1928–2014", tradition: "modern", carry: "Acknowledge one thing you've overcome. Say it out loud, even quietly.", reflection: "What transformation in you would others not guess from the outside?" },
+  ],
 };
 
-const FONTS_LINK = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap";
+const TRADITION_COLORS = {
+  eastern: { border: "#8b5e3c", label: "Eastern Wisdom" },
+  western: { border: "#5b7a9d", label: "Western Philosophy" },
+  indigenous: { border: "#9d7a4b", label: "Indigenous Wisdom" },
+  modern: { border: "#6b8f71", label: "Modern Thinker" },
+  african: { border: "#8b6b8a", label: "African Wisdom" },
+};
 
-async function fetchAIQuotes(category, usedAuthors) {
-  const response = await fetch("/api/quotes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ category, usedAuthors: usedAuthors.slice(-40) }),
-  });
-  if (!response.ok) throw new Error(`API ${response.status}`);
-  const data = await response.json();
-  return data.quotes;
+const EMOTIONAL_STATES = [
+  { id: "restless", label: "Restless" },
+  { id: "heavy", label: "Heavy" },
+  { id: "searching", label: "Searching" },
+  { id: "steady", label: "Steady" },
+  { id: "open", label: "Open" },
+];
+
+const FONTS = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap";
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-function Loader() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", padding: "3rem" }}>
-      {[0, 1, 2].map((i) => (
-        <div key={i} style={{
-          width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", opacity: 0.3,
-          animation: `pulse 1.2s ease-in-out ${i * 0.15}s infinite`,
-        }} />
-      ))}
-      <style>{`@keyframes pulse{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1.3)}}`}</style>
-    </div>
-  );
+function getStoredData() {
+  try {
+    const raw = localStorage.getItem("presently_data");
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-export default function WisdomQuotes() {
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [currentQuote, setCurrentQuote] = useState(null);
-  const [fadeState, setFadeState] = useState("in");
-  const [favorites, setFavorites] = useState([]);
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [loading, setLoading] = useState(false);
-  const [totalServed, setTotalServed] = useState(0);
-  const [aiStatus, setAiStatus] = useState("ready"); // ready | fetching | fallback
-  const [statusMsg, setStatusMsg] = useState(null);
+function storeData(data) {
+  try {
+    localStorage.setItem("presently_data", JSON.stringify(data));
+  } catch {}
+}
 
-  const queueRef = useRef({});
-  const usedAuthorsRef = useRef(new Set());
-  const fetchingRef = useRef({});
+function getDayCount(data) {
+  if (!data || !data.firstDay) return 1;
+  const first = new Date(data.firstDay);
+  const now = new Date();
+  return Math.max(1, Math.floor((now - first) / 86400000) + 1);
+}
 
-  const getQueue = (cat) => queueRef.current[cat] || [];
-  const setQueue = (cat, quotes) => { queueRef.current[cat] = quotes; };
+// ─── Main App ───
+export default function Presently() {
+  const [phase, setPhase] = useState("checkin"); // checkin | loading | insight | carry | reflect | complete | journal
+  const [selectedState, setSelectedState] = useState(null);
+  const [entry, setEntry] = useState(null);
+  const [reflectionText, setReflectionText] = useState("");
+  const [committed, setCommitted] = useState(false);
+  const [fade, setFade] = useState("in");
+  const [dayCount, setDayCount] = useState(1);
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [yesterdayReflection, setYesterdayReflection] = useState(null);
+  const [showYesterday, setShowYesterday] = useState(false);
+  const usedAuthorsRef = useRef([]);
+  const inputRef = useRef(null);
 
-  const prefetch = useCallback(async (cat) => {
-    if (fetchingRef.current[cat]) return;
-    fetchingRef.current[cat] = true;
-    try {
-      const usedArr = Array.from(usedAuthorsRef.current);
-      const newQuotes = await fetchAIQuotes(cat, usedArr);
-      const existing = getQueue(cat);
-      const deduped = newQuotes.filter(
-        (q) => !usedAuthorsRef.current.has(q.author) && !existing.some((e) => e.author === q.author)
-      );
-      setQueue(cat, [...existing, ...deduped]);
-    } catch (e) {
-      console.warn("Prefetch failed:", e);
-    } finally {
-      fetchingRef.current[cat] = false;
+  // Load persisted data
+  useEffect(() => {
+    const data = getStoredData();
+    if (data) {
+      setDayCount(getDayCount(data));
+      setJournalEntries(data.journal || []);
+      usedAuthorsRef.current = data.usedAuthors || [];
+      // Check for yesterday's reflection
+      const journal = data.journal || [];
+      if (journal.length > 0) {
+        const last = journal[journal.length - 1];
+        const lastDate = new Date(last.date);
+        const now = new Date();
+        const diffHours = (now - lastDate) / 3600000;
+        if (diffHours < 48 && diffHours > 4) {
+          setYesterdayReflection(last.reflection);
+          setShowYesterday(true);
+        }
+      }
+      // If first time, set first day
+      if (!data.firstDay) {
+        storeData({ ...data, firstDay: new Date().toISOString() });
+      }
+    } else {
+      storeData({ firstDay: new Date().toISOString(), journal: [], usedAuthors: [] });
     }
   }, []);
 
-  const pickSeed = useCallback((cat) => {
-    const seeds = cat === "all" ? SEED_QUOTES : SEED_QUOTES.filter((q) => q.category === cat);
-    const unused = seeds.filter((q) => !usedAuthorsRef.current.has(q.author));
+  const transition = useCallback((nextPhase, delay = 400) => {
+    setFade("out");
+    setTimeout(() => {
+      setPhase(nextPhase);
+      setFade("in");
+    }, delay);
+  }, []);
+
+  const handleStateSelect = useCallback(async (stateId) => {
+    setSelectedState(stateId);
+    transition("loading");
+
+    // Try API first
+    try {
+      const resp = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          state: stateId,
+          usedAuthors: usedAuthorsRef.current,
+          yesterdayReflection: yesterdayReflection,
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setEntry(data);
+        usedAuthorsRef.current = [...usedAuthorsRef.current, data.author].slice(-30);
+        const stored = getStoredData() || {};
+        storeData({ ...stored, usedAuthors: usedAuthorsRef.current });
+        setTimeout(() => transition("insight"), 600);
+        return;
+      }
+    } catch {}
+
+    // Fallback to seeds
+    const seeds = SEED_ENTRIES[stateId] || SEED_ENTRIES.searching;
+    const unused = seeds.filter(s => !usedAuthorsRef.current.includes(s.author));
     const pool = unused.length > 0 ? unused : seeds;
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    usedAuthorsRef.current.add(pick.author);
-    return pick;
+    setEntry(pick);
+    usedAuthorsRef.current.push(pick.author);
+    setTimeout(() => transition("insight"), 600);
+  }, [transition, yesterdayReflection]);
+
+  const handleCommit = useCallback(() => {
+    setCommitted(true);
+    setTimeout(() => transition("reflect"), 1200);
+  }, [transition]);
+
+  const handleReflectionSubmit = useCallback(() => {
+    const text = reflectionText.trim();
+    if (text) {
+      const newEntry = {
+        date: new Date().toISOString(),
+        state: selectedState,
+        quote: entry?.quote,
+        author: entry?.author,
+        carry: entry?.carry,
+        reflection: text,
+      };
+      const updated = [...journalEntries, newEntry];
+      setJournalEntries(updated);
+      const stored = getStoredData() || {};
+      storeData({ ...stored, journal: updated });
+    }
+    transition("complete");
+  }, [reflectionText, selectedState, entry, journalEntries, transition]);
+
+  const handleSkipReflection = useCallback(() => {
+    transition("complete");
+  }, [transition]);
+
+  const handleNewDay = useCallback(() => {
+    setPhase("checkin");
+    setSelectedState(null);
+    setEntry(null);
+    setReflectionText("");
+    setCommitted(false);
+    setShowYesterday(false);
+    setFade("in");
   }, []);
 
-  const getNextQuote = useCallback(async (cat) => {
-    // Try queue first
-    const queue = getQueue(cat);
-    if (queue.length > 0) {
-      const [next, ...rest] = queue;
-      setQueue(cat, rest);
-      usedAuthorsRef.current.add(next.author);
-      if (rest.length <= 2) prefetch(cat);
-      return next;
-    }
-
-    // Try API
-    if (aiStatus !== "fallback") {
-      setAiStatus("fetching");
-      try {
-        const usedArr = Array.from(usedAuthorsRef.current);
-        const newQuotes = await fetchAIQuotes(cat, usedArr);
-        const deduped = newQuotes.filter((q) => !usedAuthorsRef.current.has(q.author));
-        const pool = deduped.length > 0 ? deduped : newQuotes;
-        const [next, ...rest] = pool;
-        if (rest.length > 0) setQueue(cat, rest);
-        usedAuthorsRef.current.add(next.author);
-        setAiStatus("ready");
-        return next;
-      } catch (e) {
-        console.error("AI fetch failed:", e);
-        setAiStatus("fallback");
-        setStatusMsg("AI unavailable — showing curated wisdom");
-        return pickSeed(cat);
-      }
-    }
-
-    return pickSeed(cat);
-  }, [aiStatus, prefetch, pickSeed]);
-
-  const showNewQuote = useCallback(async () => {
-    if (loading) return;
-    setLoading(true);
-    setStatusMsg(null);
-    setFadeState("out");
-
-    try {
-      const q = await getNextQuote(activeCategory);
-      setTimeout(() => {
-        setCurrentQuote(q);
-        setHistory((prev) => [...prev.slice(0, historyIndex + 1), q]);
-        setHistoryIndex((prev) => prev + 1);
-        setTotalServed((prev) => prev + 1);
-        setFadeState("in");
-        setLoading(false);
-      }, 420);
-    } catch (e) {
-      const fallback = pickSeed(activeCategory);
-      setTimeout(() => {
-        setCurrentQuote(fallback);
-        setHistory((prev) => [...prev.slice(0, historyIndex + 1), fallback]);
-        setHistoryIndex((prev) => prev + 1);
-        setTotalServed((prev) => prev + 1);
-        setFadeState("in");
-        setLoading(false);
-      }, 420);
-    }
-  }, [activeCategory, getNextQuote, historyIndex, loading, pickSeed]);
-
-  const goBack = () => {
-    if (historyIndex > 0) {
-      setFadeState("out");
-      setTimeout(() => {
-        setHistoryIndex((prev) => prev - 1);
-        setCurrentQuote(history[historyIndex - 1]);
-        setFadeState("in");
-      }, 400);
-    }
-  };
-
-  const goForward = () => {
-    if (historyIndex < history.length - 1) {
-      setFadeState("out");
-      setTimeout(() => {
-        setHistoryIndex((prev) => prev + 1);
-        setCurrentQuote(history[historyIndex + 1]);
-        setFadeState("in");
-      }, 400);
-    }
-  };
-
-  const toggleFavorite = () => {
-    if (!currentQuote) return;
-    setFavorites((prev) => {
-      const exists = prev.find((f) => f.text === currentQuote.text);
-      if (exists) return prev.filter((f) => f.text !== currentQuote.text);
-      return [...prev, currentQuote];
-    });
-  };
-
-  const isFavorited = currentQuote && favorites.some((f) => f.text === currentQuote.text);
-
-  // Boot
-  useEffect(() => {
-    const pick = pickSeed("all");
-    setCurrentQuote(pick);
-    setHistory([pick]);
-    setHistoryIndex(0);
-    setTotalServed(1);
-    prefetch("all");
-  }, []);
-
-  // Category switch
-  useEffect(() => {
-    setFadeState("out");
-    const pick = pickSeed(activeCategory);
-    setTimeout(() => {
-      setCurrentQuote(pick);
-      setHistory([pick]);
-      setHistoryIndex(0);
-      setTotalServed((prev) => prev + 1);
-      setFadeState("in");
-    }, 400);
-    prefetch(activeCategory);
-  }, [activeCategory]);
-
-  const tradition = currentQuote ? TRADITION_COLORS[currentQuote.tradition] || TRADITION_COLORS.modern : null;
+  const tradition = entry ? TRADITION_COLORS[entry.tradition] || TRADITION_COLORS.modern : null;
 
   return (
     <>
-      <link href={FONTS_LINK} rel="stylesheet" />
+      <link href={FONTS} rel="stylesheet" />
       <style>{`
         *{margin:0;padding:0;box-sizing:border-box}
-        :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;--text:#e8e4de;--text-dim:#8a8580;--accent:#c9a96e;--accent-glow:rgba(201,169,110,0.15)}
-        body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif}
-        .app{min-height:100vh;display:flex;flex-direction:column;align-items:center;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(201,169,110,0.06) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 100%,rgba(120,80,40,0.04) 0%,transparent 50%),var(--bg);padding:2rem 1rem;position:relative;overflow:hidden}
-        .app::before{content:'';position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none}
-        .header{text-align:center;margin-bottom:2rem;position:relative;z-index:1}
-        .header h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:2.8rem;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.25rem}
-        .header p{font-weight:300;font-size:0.85rem;color:var(--text-dim);letter-spacing:0.15em;text-transform:uppercase}
-        .ai-pill{display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.65rem;padding:0.25rem 0.75rem;border-radius:100px;font-size:0.65rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase}
-        .ai-pill.live{border:1px solid rgba(16,185,129,0.35);color:#10b981;background:rgba(16,185,129,0.06)}
-        .ai-pill.loading{border:1px solid rgba(201,169,110,0.35);color:var(--accent);background:rgba(201,169,110,0.06)}
-        .ai-pill.off{border:1px solid rgba(239,68,68,0.25);color:#ef4444;background:rgba(239,68,68,0.05)}
-        .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
-        .dot.green{background:#10b981}
-        .dot.amber{background:var(--accent);animation:blink 1s infinite}
-        .dot.red{background:#ef4444}
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-        .categories{display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;max-width:700px;margin-bottom:2.5rem;position:relative;z-index:1}
-        .cat-btn{background:var(--surface);border:1px solid rgba(255,255,255,0.06);color:var(--text-dim);padding:0.5rem 1rem;border-radius:100px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:0.8rem;font-weight:400;letter-spacing:0.03em;transition:all 0.3s ease;display:flex;align-items:center;gap:0.4rem}
-        .cat-btn:hover{background:var(--surface2);color:var(--text);border-color:rgba(255,255,255,0.1)}
-        .cat-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent);font-weight:500}
-        .quote-container{max-width:720px;width:100%;position:relative;z-index:1}
-        .quote-card{background:var(--surface);border:1px solid rgba(255,255,255,0.05);border-radius:1.5rem;padding:3rem 2.5rem;position:relative;overflow:hidden;transition:opacity 0.4s ease,transform 0.4s ease;min-height:220px}
-        .quote-card.fade-out{opacity:0;transform:translateY(8px)}
-        .quote-card.fade-in{opacity:1;transform:translateY(0)}
-        .quote-card::before{content:'"';position:absolute;top:-0.3rem;left:1.2rem;font-family:'Cormorant Garamond',serif;font-size:8rem;color:var(--accent);opacity:0.08;line-height:1}
-        .tradition-badge{display:inline-flex;align-items:center;gap:0.35rem;padding:0.3rem 0.75rem;border-radius:100px;font-size:0.7rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1.5rem;border:1px solid}
-        .quote-text{font-family:'Cormorant Garamond',serif;font-size:1.65rem;font-weight:400;line-height:1.55;color:var(--text);margin-bottom:2rem;font-style:italic}
-        .quote-attribution{display:flex;flex-direction:column;gap:0.2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,0.06)}
-        .author-name{font-weight:500;font-size:1rem;color:var(--accent);letter-spacing:0.02em}
-        .author-era{font-weight:300;font-size:0.8rem;color:var(--text-dim);letter-spacing:0.03em}
-        .controls{display:flex;align-items:center;justify-content:center;gap:0.75rem;margin-top:2rem}
-        .ctrl-btn{background:var(--surface);border:1px solid rgba(255,255,255,0.06);color:var(--text-dim);width:48px;height:48px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all 0.25s ease}
-        .ctrl-btn:hover:not(:disabled){background:var(--surface2);color:var(--text);border-color:rgba(255,255,255,0.12);transform:scale(1.05)}
-        .ctrl-btn:disabled{opacity:0.25;cursor:not-allowed}
-        .ctrl-btn.primary{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),#a07d45);border:none;color:#0f0f0f;font-size:1.4rem;font-weight:600;box-shadow:0 4px 24px rgba(201,169,110,0.25)}
-        .ctrl-btn.primary:hover:not(:disabled){transform:scale(1.08);box-shadow:0 6px 32px rgba(201,169,110,0.35)}
-        .ctrl-btn.primary:disabled{opacity:0.5}
-        .ctrl-btn.fav-active{color:#ef4444;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08)}
-        .status-msg{text-align:center;margin-top:1rem;font-size:0.75rem;color:#f59e0b;letter-spacing:0.03em}
-        .fav-toggle-bar{display:flex;justify-content:center;margin-top:2rem}
-        .fav-toggle-btn{background:none;border:none;color:var(--text-dim);font-family:'Outfit',sans-serif;font-size:0.8rem;letter-spacing:0.08em;cursor:pointer;padding:0.5rem 1rem;transition:color 0.2s;text-transform:uppercase}
-        .fav-toggle-btn:hover{color:var(--accent)}
-        .favorites-panel{max-width:720px;width:100%;margin-top:1.5rem;position:relative;z-index:1}
-        .fav-card{background:var(--surface);border:1px solid rgba(255,255,255,0.05);border-radius:1rem;padding:1.5rem;margin-bottom:0.75rem;transition:border-color 0.2s}
-        .fav-card:hover{border-color:rgba(201,169,110,0.15)}
-        .fav-card .fav-text{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-style:italic;line-height:1.5;margin-bottom:0.75rem;color:var(--text)}
-        .fav-card .fav-author{font-size:0.8rem;color:var(--accent);font-weight:500}
-        .fav-remove{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;font-family:'Outfit',sans-serif;margin-top:0.5rem;padding:0;transition:color 0.2s}
-        .fav-remove:hover{color:#ef4444}
-        .counter{text-align:center;margin-top:2rem;font-size:0.7rem;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;position:relative;z-index:1}
-        @media(max-width:600px){.header h1{font-size:2rem}.quote-card{padding:2rem 1.5rem}.quote-text{font-size:1.3rem}.categories{gap:0.35rem}.cat-btn{padding:0.4rem 0.75rem;font-size:0.72rem}}
+        :root{
+          --bg:#0c0b0a;
+          --surface:#151413;
+          --surface2:#1d1c1a;
+          --text:#ddd8d0;
+          --text-dim:#706b63;
+          --text-faint:#3d3a36;
+          --accent:#b8a07a;
+          --accent-soft:rgba(184,160,122,0.08);
+          --warm:rgba(184,160,122,0.04);
+        }
+        html,body,#root{height:100%;background:var(--bg);color:var(--text)}
+        body{font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
+
+        .app{
+          min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          padding:2rem 1.5rem;position:relative;overflow:hidden;
+          background:radial-gradient(ellipse 70% 50% at 50% 30%,var(--warm),transparent 70%),var(--bg);
+        }
+        .app::after{
+          content:'';position:absolute;inset:0;pointer-events:none;
+          background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+        }
+
+        .scene{
+          max-width:420px;width:100%;position:relative;z-index:1;
+          transition:opacity 0.5s ease,transform 0.5s ease;
+        }
+        .scene.fade-out{opacity:0;transform:translateY(6px)}
+        .scene.fade-in{opacity:1;transform:translateY(0)}
+
+        /* ─── Check-in Screen ─── */
+        .greeting{
+          font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.8rem;
+          color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;
+          text-align:center;margin-bottom:0.4rem;
+        }
+        .day-count{
+          font-size:0.7rem;color:var(--text-faint);letter-spacing:0.1em;
+          text-align:center;margin-bottom:3rem;text-transform:uppercase;
+        }
+        .yesterday-echo{
+          text-align:center;margin-bottom:2rem;padding:1rem 1.25rem;
+          background:var(--accent-soft);border-radius:0.75rem;
+          border:1px solid rgba(184,160,122,0.06);
+        }
+        .yesterday-label{
+          font-size:0.65rem;color:var(--text-dim);letter-spacing:0.08em;
+          text-transform:uppercase;margin-bottom:0.5rem;
+        }
+        .yesterday-text{
+          font-family:'Cormorant Garamond',serif;font-size:1rem;
+          font-style:italic;color:var(--text);line-height:1.5;opacity:0.7;
+        }
+        .checkin-question{
+          font-family:'Cormorant Garamond',serif;font-size:1.9rem;
+          font-weight:300;font-style:italic;text-align:center;
+          line-height:1.4;color:var(--text);margin-bottom:2.5rem;
+        }
+        .states{display:flex;flex-wrap:wrap;justify-content:center;gap:0.6rem}
+        .state-pill{
+          background:var(--surface);border:1px solid rgba(255,255,255,0.04);
+          color:var(--text-dim);padding:0.65rem 1.4rem;border-radius:100px;
+          cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.85rem;
+          font-weight:400;letter-spacing:0.04em;transition:all 0.3s ease;
+        }
+        .state-pill:hover{
+          background:var(--surface2);color:var(--text);
+          border-color:rgba(184,160,122,0.15);
+        }
+        .state-pill:active{transform:scale(0.97)}
+
+        /* ─── Loading ─── */
+        .loading-wrap{display:flex;flex-direction:column;align-items:center;gap:1.5rem;padding:4rem 0}
+        .loading-dots{display:flex;gap:0.5rem}
+        .loading-dots span{
+          width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:0.3;
+          animation:ldot 1.4s ease-in-out infinite;
+        }
+        .loading-dots span:nth-child(2){animation-delay:0.15s}
+        .loading-dots span:nth-child(3){animation-delay:0.3s}
+        @keyframes ldot{0%,80%,100%{opacity:.15;transform:scale(.8)}40%{opacity:.8;transform:scale(1.2)}}
+        .loading-text{font-size:0.75rem;color:var(--text-faint);letter-spacing:0.08em}
+
+        /* ─── Insight (Quote) Screen ─── */
+        .tradition-line{
+          font-size:0.65rem;font-weight:500;letter-spacing:0.1em;
+          text-transform:uppercase;margin-bottom:2rem;
+          display:flex;align-items:center;gap:0.5rem;
+        }
+        .tradition-dot{width:5px;height:5px;border-radius:50%}
+        .quote-block{
+          font-family:'Cormorant Garamond',serif;font-size:1.7rem;
+          font-weight:300;font-style:italic;line-height:1.55;
+          color:var(--text);margin-bottom:2rem;
+        }
+        .attribution{
+          padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.04);
+        }
+        .attr-name{font-weight:500;font-size:0.9rem;color:var(--accent);margin-bottom:0.15rem}
+        .attr-era{font-size:0.75rem;color:var(--text-dim);font-weight:300}
+
+        /* ─── Carry Screen ─── */
+        .carry-label{
+          font-size:0.7rem;color:var(--text-dim);letter-spacing:0.1em;
+          text-transform:uppercase;margin-bottom:1rem;
+        }
+        .carry-text{
+          font-family:'Cormorant Garamond',serif;font-size:1.25rem;
+          font-weight:400;line-height:1.5;color:var(--text);
+          margin-bottom:2.5rem;padding:1.25rem 1.5rem;
+          background:var(--accent-soft);border-radius:0.75rem;
+          border:1px solid rgba(184,160,122,0.06);
+        }
+        .commit-btn{
+          display:block;width:100%;padding:1rem;border:1px solid rgba(184,160,122,0.2);
+          background:transparent;color:var(--accent);border-radius:0.6rem;
+          font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:400;
+          letter-spacing:0.04em;cursor:pointer;transition:all 0.3s ease;
+        }
+        .commit-btn:hover{background:var(--accent-soft);border-color:rgba(184,160,122,0.35)}
+        .commit-btn.done{
+          background:rgba(184,160,122,0.1);border-color:rgba(184,160,122,0.3);
+          color:var(--accent);pointer-events:none;
+        }
+
+        /* ─── Reflect Screen ─── */
+        .reflect-question{
+          font-family:'Cormorant Garamond',serif;font-size:1.35rem;
+          font-weight:300;font-style:italic;line-height:1.5;
+          color:var(--text);margin-bottom:1.5rem;
+        }
+        .reflect-input{
+          width:100%;background:transparent;border:none;
+          border-bottom:1px solid rgba(255,255,255,0.06);
+          color:var(--text);font-family:'DM Sans',sans-serif;
+          font-size:0.95rem;font-weight:300;padding:0.75rem 0;
+          outline:none;margin-bottom:2rem;transition:border-color 0.3s;
+        }
+        .reflect-input::placeholder{color:var(--text-faint)}
+        .reflect-input:focus{border-color:rgba(184,160,122,0.3)}
+        .reflect-actions{display:flex;gap:0.75rem}
+        .reflect-submit{
+          flex:1;padding:0.85rem;background:var(--accent-soft);
+          border:1px solid rgba(184,160,122,0.15);color:var(--accent);
+          border-radius:0.6rem;font-family:'DM Sans',sans-serif;
+          font-size:0.85rem;cursor:pointer;transition:all 0.3s;
+        }
+        .reflect-submit:hover{background:rgba(184,160,122,0.12)}
+        .reflect-skip{
+          padding:0.85rem 1.2rem;background:transparent;border:none;
+          color:var(--text-faint);font-family:'DM Sans',sans-serif;
+          font-size:0.8rem;cursor:pointer;transition:color 0.3s;
+        }
+        .reflect-skip:hover{color:var(--text-dim)}
+
+        /* ─── Complete Screen ─── */
+        .complete-wrap{text-align:center;padding:3rem 0}
+        .complete-line{
+          font-family:'Cormorant Garamond',serif;font-size:1.5rem;
+          font-weight:300;font-style:italic;color:var(--text);
+          margin-bottom:0.6rem;line-height:1.5;
+        }
+        .complete-sub{
+          font-size:0.75rem;color:var(--text-faint);letter-spacing:0.08em;
+          margin-top:1.5rem;
+        }
+        .progress-arc{
+          width:48px;height:48px;margin:2.5rem auto 0;position:relative;
+        }
+        .progress-arc svg{transform:rotate(-90deg)}
+        .progress-arc circle{fill:none;stroke-width:2;stroke-linecap:round}
+        .arc-bg{stroke:var(--surface2)}
+        .arc-fill{stroke:var(--accent);transition:stroke-dashoffset 1.5s ease}
+
+        /* ─── Bottom Nav ─── */
+        .bottom-nav{
+          position:fixed;bottom:0;left:0;right:0;
+          display:flex;justify-content:center;gap:2rem;
+          padding:1rem 0 2rem;z-index:10;
+          background:linear-gradient(transparent,var(--bg) 40%);
+        }
+        .nav-btn{
+          background:none;border:none;color:var(--text-faint);
+          font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+          cursor:pointer;font-family:'DM Sans',sans-serif;
+          transition:color 0.3s;padding:0.5rem;
+        }
+        .nav-btn:hover,.nav-btn.active{color:var(--text-dim)}
+
+        /* ─── Journal Screen ─── */
+        .journal-header{
+          font-family:'Cormorant Garamond',serif;font-size:1.6rem;
+          font-weight:300;color:var(--text);margin-bottom:0.3rem;
+        }
+        .journal-sub{
+          font-size:0.75rem;color:var(--text-dim);margin-bottom:2rem;
+          letter-spacing:0.03em;
+        }
+        .journal-entry{
+          padding:1.25rem 0;border-bottom:1px solid rgba(255,255,255,0.03);
+        }
+        .journal-date{
+          font-size:0.65rem;color:var(--text-faint);letter-spacing:0.08em;
+          text-transform:uppercase;margin-bottom:0.5rem;
+        }
+        .journal-quote{
+          font-family:'Cormorant Garamond',serif;font-size:1rem;
+          font-style:italic;color:var(--text);opacity:0.5;
+          margin-bottom:0.4rem;line-height:1.45;
+        }
+        .journal-reflection{
+          font-size:0.9rem;color:var(--text);line-height:1.5;font-weight:300;
+        }
+        .journal-empty{
+          text-align:center;color:var(--text-faint);
+          font-size:0.85rem;padding:3rem 0;font-weight:300;
+        }
+
+        .stagger-1{animation:fadeUp .6s ease .1s both}
+        .stagger-2{animation:fadeUp .6s ease .25s both}
+        .stagger-3{animation:fadeUp .6s ease .4s both}
+        .stagger-4{animation:fadeUp .6s ease .55s both}
+        .stagger-5{animation:fadeUp .6s ease .7s both}
+        .stagger-slow{animation:fadeUp .8s ease .8s both}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .fade-enter{animation:fadeIn .5s ease both}
+
+        @media(max-width:400px){
+          .checkin-question{font-size:1.55rem}
+          .quote-block{font-size:1.4rem}
+          .state-pill{padding:0.55rem 1.1rem;font-size:0.8rem}
+        }
       `}</style>
 
       <div className="app">
-        <header className="header">
-          <h1>Presently</h1>
-          <p>Daily Quotes for a Calmer Mind</p>
-          <div className={`ai-pill ${aiStatus === "fallback" ? "off" : aiStatus === "fetching" ? "loading" : "live"}`}>
-            <span className={`dot ${aiStatus === "fallback" ? "red" : aiStatus === "fetching" ? "amber" : "green"}`} />
-            {aiStatus === "fallback" ? "Curated Collection" : aiStatus === "fetching" ? "Discovering Wisdom…" : "AI-Powered · Unlimited"}
+        {/* ═══════════ CHECK-IN ═══════════ */}
+        {phase === "checkin" && (
+          <div className={`scene fade-${fade}`}>
+            <div className="greeting stagger-1">{getGreeting()}</div>
+            <div className="day-count stagger-1">Day {dayCount}</div>
+
+            {showYesterday && yesterdayReflection && (
+              <div className="yesterday-echo stagger-2">
+                <div className="yesterday-label">Yesterday you said</div>
+                <div className="yesterday-text">"{yesterdayReflection}"</div>
+              </div>
+            )}
+
+            <div className={`checkin-question ${showYesterday ? 'stagger-3' : 'stagger-2'}`}>
+              How are you arriving today?
+            </div>
+
+            <div className={`states ${showYesterday ? 'stagger-4' : 'stagger-3'}`}>
+              {EMOTIONAL_STATES.map((s) => (
+                <button key={s.id} className="state-pill" onClick={() => handleStateSelect(s.id)}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </header>
+        )}
 
-        <nav className="categories">
-          {CATEGORIES.map((cat) => (
-            <button key={cat.id} className={`cat-btn ${activeCategory === cat.id ? "active" : ""}`} onClick={() => setActiveCategory(cat.id)}>
-              <span>{cat.icon}</span>{cat.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="quote-container">
-          {loading && !currentQuote ? (
-            <div className="quote-card fade-in"><Loader /></div>
-          ) : currentQuote ? (
-            <div className={`quote-card fade-${fadeState}`}>
-              {tradition && (
-                <div className="tradition-badge" style={{ background: tradition.bg, borderColor: tradition.border, color: tradition.border }}>
-                  <span style={{ fontSize: "0.55rem" }}>●</span>
-                  {tradition.label} Wisdom
-                </div>
-              )}
-              <div className="quote-text">{currentQuote.text}</div>
-              <div className="quote-attribution">
-                <span className="author-name">{currentQuote.author}</span>
-                <span className="author-era">{currentQuote.era}</span>
+        {/* ═══════════ LOADING ═══════════ */}
+        {phase === "loading" && (
+          <div className={`scene fade-${fade}`}>
+            <div className="loading-wrap">
+              <div className="loading-dots">
+                <span /><span /><span />
               </div>
             </div>
-          ) : null}
-
-          <div className="controls">
-            <button className="ctrl-btn" onClick={goBack} disabled={historyIndex <= 0} title="Previous">‹</button>
-            <button className={`ctrl-btn ${isFavorited ? "fav-active" : ""}`} onClick={toggleFavorite} title={isFavorited ? "Remove from favorites" : "Save to favorites"}>
-              {isFavorited ? "♥" : "♡"}
-            </button>
-            <button className="ctrl-btn primary" onClick={showNewQuote} disabled={loading} title="New quote">
-              {loading ? "…" : "✦"}
-            </button>
-            <button className="ctrl-btn" onClick={goForward} disabled={historyIndex >= history.length - 1} title="Next">›</button>
-          </div>
-
-          {statusMsg && <div className="status-msg">{statusMsg}</div>}
-        </div>
-
-        {favorites.length > 0 && (
-          <div className="fav-toggle-bar">
-            <button className="fav-toggle-btn" onClick={() => setShowFavorites(!showFavorites)}>
-              {showFavorites ? "Hide" : "Show"} Favorites ({favorites.length})
-            </button>
           </div>
         )}
 
-        {showFavorites && favorites.length > 0 && (
-          <div className="favorites-panel">
-            {favorites.map((fav, i) => (
-              <div className="fav-card" key={i}>
-                <div className="fav-text">"{fav.text}"</div>
-                <div className="fav-author">— {fav.author}</div>
-                <button className="fav-remove" onClick={() => setFavorites((prev) => prev.filter((f) => f.text !== fav.text))}>Remove</button>
+        {/* ═══════════ INSIGHT (QUOTE) ═══════════ */}
+        {phase === "insight" && entry && (
+          <div className={`scene fade-${fade}`}>
+            {tradition && (
+              <div className="tradition-line stagger-1" style={{ color: tradition.border }}>
+                <span className="tradition-dot" style={{ background: tradition.border }} />
+                {tradition.label}
               </div>
-            ))}
+            )}
+            <div className="quote-block stagger-2">{entry.quote}</div>
+            <div className="attribution stagger-3">
+              <div className="attr-name">{entry.author}</div>
+              <div className="attr-era">{entry.era}</div>
+            </div>
+            <div style={{ marginTop: "2.5rem" }} className="stagger-slow">
+              <button className="commit-btn" onClick={() => transition("carry")} style={{ background: 'transparent' }}>
+                Continue
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="counter">
-          {totalServed} quotes explored{history.length > 1 ? ` · ${history.length} in history` : ""}{favorites.length > 0 ? ` · ${favorites.length} saved` : ""}
-        </div>
+        {/* ═══════════ CARRY (ACTION) ═══════════ */}
+        {phase === "carry" && entry && (
+          <div className={`scene fade-${fade}`}>
+            <div className="carry-label stagger-1">One thing to carry today</div>
+            <div className="carry-text stagger-2">{entry.carry}</div>
+            <button
+              className={`commit-btn stagger-3 ${committed ? 'done' : ''}`}
+              onClick={handleCommit}
+            >
+              {committed ? "Noted" : "I'll try this"}
+            </button>
+          </div>
+        )}
+
+        {/* ═══════════ REFLECT ═══════════ */}
+        {phase === "reflect" && entry && (
+          <div className={`scene fade-${fade}`}>
+            <div className="reflect-question stagger-1">{entry.reflection}</div>
+            <input
+              ref={inputRef}
+              className="reflect-input stagger-2"
+              type="text"
+              placeholder="Write one honest sentence..."
+              value={reflectionText}
+              onChange={(e) => setReflectionText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && reflectionText.trim() && handleReflectionSubmit()}
+              autoFocus
+            />
+            <div className="reflect-actions stagger-3">
+              <button className="reflect-submit" onClick={handleReflectionSubmit} disabled={!reflectionText.trim()}>
+                Save
+              </button>
+              <button className="reflect-skip" onClick={handleSkipReflection}>
+                Not today
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ COMPLETE ═══════════ */}
+        {phase === "complete" && (
+          <div className={`scene fade-${fade}`}>
+            <div className="complete-wrap">
+              <div className="complete-line stagger-1">You're aligned.</div>
+              <div className="complete-line stagger-2" style={{ opacity: 0.5, fontSize: '1.2rem' }}>Go gently.</div>
+
+              <div className="progress-arc stagger-3">
+                <svg viewBox="0 0 48 48" width="48" height="48">
+                  <circle className="arc-bg" cx="24" cy="24" r="20" />
+                  <circle
+                    className="arc-fill"
+                    cx="24" cy="24" r="20"
+                    strokeDasharray={2 * Math.PI * 20}
+                    strokeDashoffset={2 * Math.PI * 20 * (1 - Math.min(dayCount, 30) / 30)}
+                  />
+                </svg>
+              </div>
+
+              <div className="complete-sub stagger-slow">
+                {dayCount >= 30
+                  ? `${dayCount} days of showing up. That's rare.`
+                  : `Day ${dayCount} of 30`
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ JOURNAL ═══════════ */}
+        {phase === "journal" && (
+          <div className={`scene fade-${fade}`}>
+            <div className="journal-header stagger-1">Your thread</div>
+            <div className="journal-sub stagger-1">{journalEntries.length} reflections</div>
+
+            {journalEntries.length === 0 ? (
+              <div className="journal-empty stagger-2">Nothing here yet. That changes today.</div>
+            ) : (
+              [...journalEntries].reverse().map((je, i) => (
+                <div className="journal-entry" key={i} style={{ animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both` }}>
+                  <div className="journal-date">
+                    {new Date(je.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {je.state && ` · ${je.state}`}
+                  </div>
+                  {je.quote && <div className="journal-quote">"{je.quote}"</div>}
+                  <div className="journal-reflection">{je.reflection}</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ═══════════ BOTTOM NAV ═══════════ */}
+        {(phase === "complete" || phase === "journal") && (
+          <div className="bottom-nav">
+            <button
+              className={`nav-btn ${phase === "journal" ? "" : "active"}`}
+              onClick={handleNewDay}
+            >
+              Begin again
+            </button>
+            <button
+              className={`nav-btn ${phase === "journal" ? "active" : ""}`}
+              onClick={() => transition("journal")}
+            >
+              Your journal
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
